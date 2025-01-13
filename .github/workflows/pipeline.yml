@@ -38,7 +38,7 @@ jobs:
 
       # 5. Análisis de seguridad de imagen con Trivy
       - name: Image Security Scan
-        uses: aquasecurity/trivy-action@v0.11.0
+        uses: aquasecurity/trivy-action@v0.11.1
         with:
           image-ref: laboratorio-final:latest
           exit-code: "1"
