@@ -1,0 +1,51 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - implementacion-pipeline
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Clonación del repositorio
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Análisis SAST con SonarCloud
+      - name: Run SAST Analysis
+        uses: sonarsource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=edugodoy_laboratoriofinal
+            -Dsonar.organization=EduGodoy
+
+      # 3. Análisis SCA con Dependency Check
+      - name: Run SCA Analysis
+        run: |
+          curl -LO https://github.com/jeremylong/DependencyCheck/releases/latest/download/dependency-check-6.5.2-release.zip
+          unzip dependency-check-6.5.2-release.zip
+          ./dependency-check/bin/dependency-check.sh --project "Laboratorio Final" --out ./dependency-check-report --scan .
+
+      # 4. Construcción de la imagen Docker
+      - name: Build Docker Image
+        run: |
+          docker build -t laboratorio-final:latest .
+
+      # 5. Análisis de seguridad de imagen con Trivy
+      - name: Image Security Scan
+        uses: aquasecurity/trivy-action@v0.11.0
+        with:
+          image-ref: laboratorio-final:latest
+          exit-code: "1"
+          severity: "CRITICAL,HIGH,MEDIUM"
+
+      # 6. Despliegue en Minikube
+      - name: Deploy to Minikube
+        run: |
+          kubectl apply -f k8s/deployment.yml
+          kubectl get pods
